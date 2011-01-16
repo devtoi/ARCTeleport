@@ -13,7 +13,9 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerItemEvent;
 import org.bukkit.event.player.PlayerListener;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.config.Configuration;
 
 public class ARCTPListener extends PlayerListener{
 	
@@ -26,6 +28,7 @@ public class ARCTPListener extends PlayerListener{
 	private Plugin plugin;
 	private tProperties props = new tProperties("ARCTeleport" + File.separator + "arct.properties");
 	private tPermissions perms = new tPermissions("ARCTeleport" + File.separator + "arct.perms");
+	private Configuration cfg = new Configuration(new File("ARCTeleport" + File.separator + "arct.cfg"));
 	
 	public tProperties getProps() {
 		return props;
@@ -37,6 +40,17 @@ public class ARCTPListener extends PlayerListener{
 
 	public ARCTPListener(ARCTeleport arcTeleport) {
 		this.plugin = arcTeleport;
+	}
+	
+	public void loadConfigg()
+	{
+		cfg.load();
+		fallDamage = cfg.getBoolean("arc.fall-damage", true);
+        teleDoCost = cfg.getBoolean("arc.teleport-do-cost", false);
+        teleCost = cfg.getInt("arc.tele-cost", 1);
+        teleporterID = cfg.getInt("arc.tele-block-id", 288);
+        blocksToIgnore = new ArrayList<String>(Arrays.asList(cfg.getString("blocks-to-ignore", "6,8,9,10,11,37,38,39,40,50,51,52,55,65,66,69,70,72,75,76,77,78,295,321,323,324,330").split(",")));
+		blocksToIgnore.add("0"); // Must be here
 	}
 	
 	public void loadConfig()
@@ -59,7 +73,7 @@ public class ARCTPListener extends PlayerListener{
 	{
 		Player player = event.getPlayer();
 		String split[] = event.getMessage().split(" ");
-
+		
 		if(split[0].equalsIgnoreCase("/arcd") && perms.canPlayerUseCommand(player.getName(), "/arcd"))
         {
 			if (split[1].equalsIgnoreCase("falldamage"))
@@ -147,30 +161,16 @@ public class ARCTPListener extends PlayerListener{
 		}
 	}
 	
-	/*public boolean onDamage(PluginLoader.DamageType type, BaseEntity attacker, BaseEntity defender, int amount)
-	{
-		if (enabled)
-		{
-			if (type == PluginLoader.DamageType.FALL && fallDamage == false)
-			{
-				return true;
-			}
-			else
-				return false;
-		}
-		else return true;
-	}*/
-	
 	public void onPlayerItem (PlayerItemEvent event)
 	{
 		Player player = event.getPlayer();
 		if (player.getItemInHand().getTypeId() == this.teleporterID)
 		{
-			this.telePlayer(player);
+			this.telePlayer(player, event.getItem());
 		}
 	}
 	
-	private boolean telePlayer(Player player)
+	private boolean telePlayer(Player player, ItemStack inh)
 	{
 		if (perms.canPlayerUseCommand(player.getName(), "/arct"))
 		{
@@ -189,21 +189,30 @@ public class ARCTPListener extends PlayerListener{
                         playerLoc.setY(ab.getCurrentBlock().getY() + i);
                         playerLoc.setZ(ab.getCurrentBlock().getZ() + .5);
                         player.teleportTo(playerLoc);
-                        i = 128;/*
+                        i = 128;
                         if (teleDoCost)
 		                {
-                        	PlayerInventory inv = player.getInventory();
-                        	ItemStack stack = new ItemStack(teleporterID, 64);
-                        	if (inv.contains(stack))
+                        	int or = 0;
+                        	if (inh.getAmount() - teleCost <= 0)
                         	{
-                        		inv.remove(stack);
-	                            player.teleportTo(playerLoc);
+                        		or = (inh.getAmount() - teleCost) * -1;
+                        		player.getInventory().remove(inh);
                         	}
-                    		else
-                        		player.sendMessage(arcString + "Not enough teleporting material!");
+                        	else
+                        		inh.setAmount(inh.getAmount() - teleCost);
+                        	while (or > 0)
+                        	{
+                        		if (player.getInventory().contains(inh.getTypeId()))
+                        		{
+                        			player.getInventory().removeItem(new ItemStack(inh.getTypeId(), 1));
+                        		}
+                        		else
+                        			break;
+                        		or--;
+                        	}
 	                    }
                         else
-                            player.teleportTo(playerLoc);*/
+                            player.teleportTo(playerLoc);
                     }
                 }
             }

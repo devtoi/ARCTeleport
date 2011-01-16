@@ -18,7 +18,7 @@ public class ARCTeleport extends JavaPlugin{
         super(pluginLoader, instance, desc, folder, plugin, cLoader);
 
         name = "ARC Teleport";
-        version = "v0.2.1 (Lei-Ach)";
+        version = "v0.3.0 (Lilliad)";
         
         this.createFolder();
         playerListener.getPerms().addCmd("/arct");
