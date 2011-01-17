@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Hashtable;
 
 import org.bukkit.block.Block;
 import org.bukkit.ChatColor;
@@ -11,6 +12,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.event.player.PlayerChatEvent;
+import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerItemEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -29,6 +31,7 @@ public class ARCTPListener extends PlayerListener{
 	private tProperties props = new tProperties("ARCTeleport" + File.separator + "arct.properties");
 	private tPermissions perms = new tPermissions("ARCTeleport" + File.separator + "arct.perms");
 	private Configuration cfg = new Configuration(new File("ARCTeleport" + File.separator + "arct.cfg"));
+	private Hashtable<String, Boolean> mode = new Hashtable<String, Boolean>();
 	
 	public tProperties getProps() {
 		return props;
@@ -58,7 +61,7 @@ public class ARCTPListener extends PlayerListener{
 		try {
             props.load();
         } catch (IOException e) {
-            System.out.println("[ARCT] Failed to load configuration");
+            ARCTeleport.log.warning("[ARCT] Failed to load configuration");
         }
         fallDamage = props.getBoolean("fall-damage", true);
         teleDoCost = props.getBoolean("teleport-do-cost", false);
@@ -67,6 +70,20 @@ public class ARCTPListener extends PlayerListener{
         blocksToIgnore = new ArrayList<String>(Arrays.asList(props.getString("blocks-to-ignore", "6,8,9,10,11,37,38,39,40,50,51,52,55,65,66,69,70,72,75,76,77,78,295,321,323,324,330").split(",")));
 		blocksToIgnore.add("0"); // Must be here
         props.save();
+	}
+	
+	public void onPlayerJoin(PlayerEvent event)
+	{
+		Player player = event.getPlayer();
+		if (!this.mode.containsKey(player.getName()))
+			this.mode.put(player.getName(), true);
+	}
+	
+	public void onPlayerQuit(PlayerEvent event)
+	{
+		Player player = event.getPlayer();
+		if (this.mode.containsKey(player.getName()))
+			this.mode.remove(player.getName());
 	}
 	
 	public void onPlayerCommand(PlayerChatEvent event)
@@ -82,7 +99,7 @@ public class ARCTPListener extends PlayerListener{
 				{
 					fallDamage = false;
 					player.sendMessage(arcString + "You disabled falldamage!");
-					System.out.println(player.getName() + " disabled falldamage");
+					ARCTeleport.log.info(player.getName() + " disabled falldamage");
 				}
 				else
 					player.sendMessage(arcString + "Falldamage already disabled!");
@@ -93,7 +110,7 @@ public class ARCTPListener extends PlayerListener{
 				{
 					teleDoCost = false;
 					player.sendMessage(arcString + "Teleport is now free!");
-					System.out.println("Teleport cost disabled by: " + player.getName());
+					ARCTeleport.log.info("Teleport cost disabled by: " + player.getName());
 				}
 				else
 					player.sendMessage(arcString + "Teleport cost aleady disabled!");
@@ -102,6 +119,7 @@ public class ARCTPListener extends PlayerListener{
 			{
 				player.sendMessage(arcString + "Unknown feature!, use falldamage or teledocost");
 			}
+			event.setCancelled(true);
         }
 		else if(split[0].equalsIgnoreCase("/arce") && perms.canPlayerUseCommand(player.getName(), "/arce"))
         {
@@ -111,7 +129,7 @@ public class ARCTPListener extends PlayerListener{
 				{
 					fallDamage = true;
 					player.sendMessage(arcString + "You enabled falldamage!");
-					System.out.println(player.getName() + " enabled falldamage");
+					ARCTeleport.log.info(player.getName() + " enabled falldamage");
 				}
 				else
 					player.sendMessage(arcString + "Falldamage already enabled!");
@@ -122,7 +140,7 @@ public class ARCTPListener extends PlayerListener{
 				{
 					teleDoCost = true;
 					player.sendMessage(arcString + "Teleport now cost " + teleCost + " feathers");
-					System.out.println("Teleport cost enabled by: " + player.getName());
+					ARCTeleport.log.info("Teleport cost enabled by: " + player.getName());
 				}
 				else
 					player.sendMessage(arcString + "Teleport cost already enabled!");
@@ -131,6 +149,7 @@ public class ARCTPListener extends PlayerListener{
 			{
 				player.sendMessage(arcString + "Unknown feature!, use falldamage or teledocost");
 			}
+			event.setCancelled(true);
         }
 		else if(split[0].equalsIgnoreCase("/arcs") && perms.canPlayerUseCommand(player.getName(), "/arcs"))
 		{
@@ -142,7 +161,7 @@ public class ARCTPListener extends PlayerListener{
 					{
 						teleCost = new Integer(split[2]).intValue();
 						player.sendMessage(arcString + "Teleport now cost " + teleCost + " feathers");
-						System.out.println(player.getName() + " changed teleportcost");
+						ARCTeleport.log.info(player.getName() + " changed teleportcost to " + split[2]);
 						if (teleDoCost == false)
 						{
 							player.sendMessage("Don't forget to enable teleport cost!");
@@ -158,6 +177,22 @@ public class ARCTPListener extends PlayerListener{
 			}
 			else
 				player.sendMessage(arcString + "Unknown feature!");
+			event.setCancelled(true);
+		}
+		else if (split[0].equalsIgnoreCase("/arcm"))
+		{
+			if (this.mode.containsKey(player.getName()))
+			{
+				boolean inm = this.mode.get(player.getName());
+				this.mode.put(player.getName(), !inm);
+				if (inm)
+					player.sendMessage(arcString + "You enabled tunneling teleport");
+				else
+					player.sendMessage(arcString + "You enabled normal teleport");
+			}
+			else
+				this.mode.put(player.getName(), true);
+			event.setCancelled(true);
 		}
 	}
 	
@@ -177,44 +212,114 @@ public class ARCTPListener extends PlayerListener{
 			Location playerLoc = player.getLocation().clone();
 			TargetBlock ab = new TargetBlock(player, 300, 0.3, blocksToIgnore);
 			Block blk = ab.getTargetBlock();
+			
 			if (blk != null)
             {
-                for(int i = 0; i < 128; i++)
-                {
-                    int current = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), ab.getCurrentBlock().getY() + i, ab.getCurrentBlock().getZ()).getTypeId();
-                    int above = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), ab.getCurrentBlock().getY() + i + 1, ab.getCurrentBlock().getZ()).getTypeId();
-                    if ((blocksToIgnore.contains(String.valueOf(current)) && blocksToIgnore.contains(String.valueOf(above))))
-                    {
-                    	playerLoc.setX(ab.getCurrentBlock().getX() + .5);
-                        playerLoc.setY(ab.getCurrentBlock().getY() + i);
-                        playerLoc.setZ(ab.getCurrentBlock().getZ() + .5);
-                        player.teleportTo(playerLoc);
-                        i = 128;
-                        if (teleDoCost)
-		                {
-                        	int or = 0;
-                        	if (inh.getAmount() - teleCost <= 0)
-                        	{
-                        		or = (inh.getAmount() - teleCost) * -1;
-                        		player.getInventory().remove(inh);
-                        	}
-                        	else
-                        		inh.setAmount(inh.getAmount() - teleCost);
-                        	while (or > 0)
-                        	{
-                        		if (player.getInventory().contains(inh.getTypeId()))
-                        		{
-                        			player.getInventory().removeItem(new ItemStack(inh.getTypeId(), 1));
-                        		}
-                        		else
-                        			break;
-                        		or--;
-                        	}
+				if (this.mode.get(player.getName()))
+				{
+	                for(int i = 0; i < 128; i++)
+	                {
+	                	int yPos = ab.getCurrentBlock().getY() + i;
+	                	if (yPos - 2 < 128)
+						{
+		                    int current = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), yPos, ab.getCurrentBlock().getZ()).getTypeId();
+		                    int above = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), yPos + 1, ab.getCurrentBlock().getZ()).getTypeId();
+		                    if ((blocksToIgnore.contains(String.valueOf(current)) && blocksToIgnore.contains(String.valueOf(above))))
+		                    {
+		                    	playerLoc.setX(ab.getCurrentBlock().getX() + .5);
+		                        playerLoc.setY(ab.getCurrentBlock().getY() + i);
+		                        playerLoc.setZ(ab.getCurrentBlock().getZ() + .5);
+		                        player.teleportTo(playerLoc);
+		                        i = 128;
+		                        if (teleDoCost)
+				                {
+		                        	int or = 0;
+		                        	if (inh.getAmount() - teleCost <= 0)
+		                        	{
+		                        		or = (inh.getAmount() - teleCost) * -1;
+		                        		player.getInventory().remove(inh);
+		                        	}
+		                        	else
+		                        		inh.setAmount(inh.getAmount() - teleCost);
+		                        	while (or > 0)
+		                        	{
+		                        		if (player.getInventory().contains(inh.getTypeId()))
+		                        		{
+		                        			player.getInventory().removeItem(new ItemStack(inh.getTypeId(), 1));
+		                        		}
+		                        		else
+		                        			break;
+		                        		or--;
+		                        	}
+			                    }
+		                        else
+		                            player.teleportTo(playerLoc);
+		                    }
 	                    }
-                        else
-                            player.teleportTo(playerLoc);
-                    }
-                }
+	                	else
+	                		i = 128;
+	                }
+				}
+				else
+				{
+					for(int i = 0; i < 128; i++)
+	                {
+						int yPos = ab.getCurrentBlock().getY() - i;
+						if (yPos + 1 > 0)
+						{
+		                    int current = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), yPos + 1, ab.getCurrentBlock().getZ()).getTypeId();
+		                    int below = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), yPos, ab.getCurrentBlock().getZ()).getTypeId();
+		                    if ((blocksToIgnore.contains(String.valueOf(current)) && blocksToIgnore.contains(String.valueOf(below))))
+		                    {
+		                    	for (int o = 0; o < 128; o++)
+		                    	{
+		                    		int yPosi = ab.getCurrentBlock().getY() - i - o;
+		    						if (yPosi + 1 > 0)
+		    						{
+		    							int abovei = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), yPosi + 2, ab.getCurrentBlock().getZ()).getTypeId();
+		    		                    int currenti = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), yPosi + 1, ab.getCurrentBlock().getZ()).getTypeId();
+		    		                    int belowi = playerLoc.getWorld().getBlockAt(ab.getCurrentBlock().getX(), yPosi, ab.getCurrentBlock().getZ()).getTypeId();
+		    		                    if (!blocksToIgnore.contains(String.valueOf(belowi)) && blocksToIgnore.contains(String.valueOf(currenti)) && blocksToIgnore.contains(String.valueOf(abovei)))
+		    		                    {
+		    		                    	playerLoc.setX(ab.getCurrentBlock().getX() + .5);
+		    		                        playerLoc.setY(ab.getCurrentBlock().getY() - i - o + 1);
+		    		                        playerLoc.setZ(ab.getCurrentBlock().getZ() + .5);
+		    		                        player.teleportTo(playerLoc);
+		    		                        i = 128;
+		    		                        if (teleDoCost)
+		    				                {
+		    		                        	int or = 0;
+		    		                        	if (inh.getAmount() - teleCost <= 0)
+		    		                        	{
+		    		                        		or = (inh.getAmount() - teleCost) * -1;
+		    		                        		player.getInventory().remove(inh);
+		    		                        	}
+		    		                        	else
+		    		                        		inh.setAmount(inh.getAmount() - teleCost);
+		    		                        	while (or > 0)
+		    		                        	{
+		    		                        		if (player.getInventory().contains(inh.getTypeId()))
+		    		                        		{
+		    		                        			player.getInventory().removeItem(new ItemStack(inh.getTypeId(), 1));
+		    		                        		}
+		    		                        		else
+		    		                        			break;
+		    		                        		or--;
+		    		                        	}
+		    			                    }
+		    		                        else
+		    		                            player.teleportTo(playerLoc);
+		    		                    }
+		    						}
+		    						else
+		    							o = 128;
+		                    	}
+		                    }
+	                    }
+						else
+							i = 128;
+	                }
+				}
             }
             return true;
 		}

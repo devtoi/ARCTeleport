@@ -27,7 +27,7 @@ public class tPermissions {
 		if (this.hashPerms.containsKey(command))
 		{
 			ArrayList<String> alstr = this.hashPerms.get(command);
-			if (alstr.contains(player))
+			if (alstr.contains(player) || alstr.contains("*"))
 				return true;
 			else
 				return false;

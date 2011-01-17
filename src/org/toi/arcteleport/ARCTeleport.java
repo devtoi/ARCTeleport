@@ -1,5 +1,6 @@
 package org.toi.arcteleport;
 import java.io.File;
+import java.util.logging.Logger;
 
 import org.bukkit.Server;
 import org.bukkit.event.Event;
@@ -13,12 +14,13 @@ public class ARCTeleport extends JavaPlugin{
     private String name;
     private String version;
     private final ARCTPListener playerListener = new ARCTPListener(this);
+    public static final Logger log = Logger.getLogger("Minecraft");
 
     public ARCTeleport(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin, ClassLoader cLoader) {
         super(pluginLoader, instance, desc, folder, plugin, cLoader);
 
         name = "ARC Teleport";
-        version = "v0.3.0 (Lilliad)";
+        version = "v0.4.1 (Kungai)";
         
         this.createFolder();
         playerListener.getPerms().addCmd("/arct");
@@ -33,7 +35,7 @@ public class ARCTeleport extends JavaPlugin{
     
     public void onEnable()
     {
-    	System.out.println(name + " " + version + " initialized!");
+    	log.info(name + " " + version + " initialized!");
     }
 
     public void onDisable()
@@ -52,5 +54,7 @@ public class ARCTeleport extends JavaPlugin{
     private void registerEvents() {
         getServer().getPluginManager().registerEvent(Event.Type.PLAYER_COMMAND, playerListener, Priority.Normal, this);
         getServer().getPluginManager().registerEvent(Event.Type.PLAYER_ITEM, playerListener, Priority.Normal, this);
+        getServer().getPluginManager().registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
+        getServer().getPluginManager().registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
     }
 }
