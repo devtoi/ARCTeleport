@@ -10,12 +10,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerItemEvent;
 import org.bukkit.event.player.PlayerListener;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.config.Configuration;
 
