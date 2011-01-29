@@ -68,6 +68,11 @@ public class ARCTPListener extends PlayerListener{
         blocksToIgnore = new ArrayList<String>(Arrays.asList(props.getString("blocks-to-ignore", "6,8,9,10,11,37,38,39,40,50,51,52,55,65,66,69,70,72,75,76,77,78,295,321,323,324,330").split(",")));
 		blocksToIgnore.add("0"); // Must be here
         props.save();
+    	for (Player plr : this.plugin.getServer().getOnlinePlayers())
+    	{
+			if (!this.mode.containsKey(plr.getName()))
+				this.mode.put(plr.getName(), true);
+    	}
 	}
 	
 	public void onPlayerJoin(PlayerEvent event)

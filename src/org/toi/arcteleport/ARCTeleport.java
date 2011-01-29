@@ -20,8 +20,12 @@ public class ARCTeleport extends JavaPlugin{
         super(pluginLoader, instance, desc, folder, plugin, cLoader);
 
         name = "ARC Teleport";
-        version = "v0.4.1 (Kungai)";
-        
+        version = "v0.4.2 (Kungai)";
+    }
+    
+    public void onEnable()
+    {
+    	log.info(name + " " + version + " initialized!");
         this.createFolder();
         playerListener.getPerms().addCmd("/arct");
         playerListener.getPerms().addCmd("/arcd");
@@ -31,11 +35,6 @@ public class ARCTeleport extends JavaPlugin{
         playerListener.getPerms().savePermissions();
         playerListener.loadConfig();
         registerEvents();
-    }
-    
-    public void onEnable()
-    {
-    	log.info(name + " " + version + " initialized!");
     }
 
     public void onDisable()
